@@ -1,0 +1,93 @@
+%%%%%%%%%%%%%%%
+% SIMULATIONS %
+%%%%%%%%%%%%%%%
+
+clc;
+
+% initial state variables
+
+cih_init = 50000; % cash in hand
+h_init = 1; % health status
+z_init = 4; % persistent shock
+eps_init = 1; % transitory shock (state does not matter)
+T = 31;
+
+v_cih = [cih_init; zeros(T-1,1)];
+v_ind_h = simul(h_init, Pi_h, T);
+v_h = [0; 1]; % O: health, 1: sick
+v_ind_z = simul(z_init, Pi_z, T);
+v_ind_eps = simul(eps_init, Pi_eps, T);
+v_c = zeros(T,1);
+vec_med = zeros(T,1);
+
+for t = 1:T-1
+    
+    ind = (v_ind_h(t)-1) * N_z + v_ind_z(t);
+    ind_m = (v_ind_h(t+1)-1)*(N_z*N_eps) + (v_ind_z(t+1)-1)*N_z + v_ind_eps(t+1);
+    
+    v_c(t) = interp1(v_x, m_c(:,ind,t), v_cih(t));
+    y      = r * (v_cih(t) - v_c(t))  + inc(t+1); % earnings next period
+    net_y  = y - interp1(brackets, tax, y); % earnings net of taxes
+    med    = exp(repmat(Xb_med(t+1,:), 1, N_med) ...
+             + kron(Xb_var_med(t+1,:).^(1/2), v_med')); 
+    
+    v_cih(t+1)  = max(v_cih(t) - v_c(t) + net_y - med(ind), c_ubar);
+    vec_med(t) = med(ind);
+end
+
+figure(6)
+subplot(5, 1, 1)
+plot(1:T, v_cih)
+title('cash-in-hand')
+xlabel('period t')
+xlim([1 T])
+ylim([0 100000])
+
+subplot(5, 1, 2)
+plot(1:T, v_cih)
+title('cash-in-hand')
+xlabel('period t')
+xlim([1 T])
+ylim([0 100000])
+
+subplot(5, 1, 3)
+plot(1:T, v_h(v_ind_h))
+title('health')
+xlabel('period t')
+xlim([1 T])
+ylim([0 1])
+
+subplot(5, 1, 4)
+plot(1:T, vec_med)
+title('medical expenses')
+xlabel('period t')
+xlim([1 T])
+ylim([0 20000])
+
+subplot(5, 1, 5)
+plot(1:T, v_z(v_ind_z))
+title('persistent shock')
+xlabel('period t')
+xlim([1 T])
+ylim([v_z(1) v_z(N_z)])
+
+
+function theta = simul(theta0, Pi, T)
+
+Pi_cum = cumsum(Pi, 2);
+theta = [theta0; zeros(T-1, 1)];
+
+for t = 1:T-1
+    
+    theta(t+1) = find(rand < Pi_cum(theta(t), :), 1, 'first');
+end
+end
+
+
+
+
+
+
+    
+    
+
